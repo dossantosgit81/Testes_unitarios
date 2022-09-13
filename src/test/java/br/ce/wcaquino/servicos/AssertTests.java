@@ -7,18 +7,23 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
+import org.junit.rules.ExpectedException;
 
 import br.ce.wcaquino.entidades.Filme;
 import br.ce.wcaquino.entidades.Locacao;
 import br.ce.wcaquino.entidades.Usuario;
+import br.ce.wcaquino.exceptions.FilmeSemEstoqueException;
 import br.ce.wcaquino.utils.DataUtils;
 
 public class AssertTests {
-	
+
 	@Rule
 	public ErrorCollector error = new ErrorCollector();
-	
-	//Coloque os valores nos locais corretos
+
+	@Rule
+	public ExpectedException exception = ExpectedException.none();
+
+	// Coloque os valores nos locais corretos
 //	@Test
 //	public void test() {
 //
@@ -52,24 +57,80 @@ public class AssertTests {
 //
 //	}
 
-	//Se o teste não está esperando exceptions, deixe que o junit gerencie para você.
+	// Se o teste não está esperando exceptions, deixe que o junit gerencie para
+	// você.
 	@Test
-	public void testeAlocacao() throws Exception{
-		//Cenario
+	public void testeAlocacao() throws Exception {
+		// Cenario
 		Usuario u1 = new Usuario("Usuario 1");
 		LocacaoService service = new LocacaoService();
 		Filme filme = new Filme("Filme 1", 2, 5.0);
-		
-		//Acao
+
+		// Acao
 		Locacao locacao;
 
+		locacao = service.alugarFilme(u1, filme);
+
+		error.checkThat(locacao.getValor(), CoreMatchers.is(CoreMatchers.equalTo(5.0)));
+		error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), new Date()), CoreMatchers.is(true));
+		error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), DataUtils.obterDataComDiferencaDias(2)),
+				CoreMatchers.is(false));
+
+	}
+
+	@Test(expected = FilmeSemEstoqueException.class)
+	public void testeLocacao_filmeSemEstoque() throws Exception {
+		// Cenario
+		Usuario u1 = new Usuario("Usuario 1");
+		LocacaoService service = new LocacaoService();
+		Filme filme = new Filme("Filme 1", 0, 5.0);
+
+		// Acao
+		Locacao locacao;
+
+		locacao = service.alugarFilme(u1, filme);
+
+		error.checkThat(locacao.getValor(), CoreMatchers.is(CoreMatchers.equalTo(5.0)));
+		error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), new Date()), CoreMatchers.is(true));
+		error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), DataUtils.obterDataComDiferencaDias(2)),
+				CoreMatchers.is(false));
+
+	}
+
+	@Test()
+	public void testeLocacao_filmeSemEstoque_2() {
+		// Cenario
+		Usuario u1 = new Usuario("Usuario 1");
+		LocacaoService service = new LocacaoService();
+		Filme filme = new Filme("Filme 1", 0, 5.0);
+
+		// Acao
+		Locacao locacao;
+
+		try {
 			locacao = service.alugarFilme(u1, filme);
-			
-			error.checkThat(locacao.getValor(), CoreMatchers.is(CoreMatchers.equalTo(5.0)));
-			error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), new Date()), CoreMatchers.is(true));
-			error.checkThat(DataUtils.isMesmaData(locacao.getDataLocacao(), DataUtils.obterDataComDiferencaDias(2)), CoreMatchers.is(false));
+			Assert.fail("Deveria ter lançado excecao");
+		} catch (Exception e) {
+			Assert.assertThat(e.getMessage(), CoreMatchers.is("Filme sem estoque"));
+
+		}
+
+	}
+
+	@Test
+	public void testeLocacao_filmeSemEstoque_3() throws Exception {
+		// Cenario
+		Usuario u1 = new Usuario("Usuario 1");
+		LocacaoService service = new LocacaoService();
+		Filme filme = new Filme("Filme 1", 0, 5.0);
+
+		exception.expect(Exception.class);
+		exception.expectMessage("Filme sem estoque");
+		
+		// Acao
+		Locacao locacao = service.alugarFilme(u1, filme);
 
 
 	}
-	
+
 }
